@@ -1,3 +1,3 @@
 # leapcode
 next generation java IDE
-![Screenshot](Screenshot.png)
+![Screenshot](screenshot.png)
