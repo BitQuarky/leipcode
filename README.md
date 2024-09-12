@@ -5,12 +5,13 @@ next generation java IDE
 
 # features
 * text-editor like functionality
+* startup splashscreen
+  * **since version 0.0.3 *may result in longer loadtimes- this is due to the advanced optimizations taking place at runtime***
 * Keybinds
   * Copy and paste
   * Compile, run, and save
 
 # coming soon
-* startup splashscreen
 * logo
 * syntax highlighting
 
