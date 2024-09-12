@@ -3,6 +3,7 @@ import tkinter.ttk as ttk
 import subprocess
 from pathlib import Path
 import re
+from time import sleep
 
 """
 #
@@ -67,7 +68,6 @@ def flatten_helper(l):
 def save(event=None):
 	global txt
 	file = cb.get()  #first we have to use stdin with a custom delimiter to catch all chars, then we use split to cleanup (add tabs and newlines, set -f fixes asterisk expansion)
-	print("data=$(cat <<\\!eof!\n" + flatten_helper([line + "\*" for line in (flatten_helper([line + "\\t" for line in re.split(r"\t",flatten_helper([line + "\\n" for line in txt.get('1.0', 'end').splitlines()]))])).split(sep="*")])[0:-7] + "\n!eof!\n); echo $data > " + file)
 	subprocess.run("set -f; data=$(cat <<\\!eof!\n" + flatten_helper([line + "\\t" for line in re.split(r"\t",flatten_helper([line + "\\n" for line in txt.get('1.0', 'end').splitlines()]))])[0:-4] + "\n!eof!\n); echo $data > " + file,shell=True)
 
 def run(event=None):
@@ -126,6 +126,58 @@ keymap = ["f",compile,"s",save,"r",run,"c",copy,"v",paste]
 
 """
 #
+#splashscreen
+#
+"""
+
+sswindow = tk.Tk()
+sswindow.geometry("300x300")
+ttk.Label(text="leapcode").grid(column=0,row=0,sticky="e")
+ttk.Label(text="v0.0.3").grid(column=0,row=1,sticky="e")
+
+lt = tk.StringVar()
+lt.set("leap's tip of the day: if statements are like onions- they have layers")
+
+leapstip = ttk.Label(textvariable=lt)
+leapstip.grid(column=1,row=2,sticky="es")
+
+sm = tk.StringVar()
+sm.set("optimizing assemblies")
+statusmessage = ttk.Label(textvariable=sm)
+statusmessage.grid(column=1,row=3)
+
+status = 0
+
+def querying():
+	global sm
+	sm.set("querying neural networks for answers")
+
+def leaposcheck():
+	global sm
+	global status
+	sm.set("checking leapOS flag")
+	status = 1
+	
+
+def updatew():
+	global sm
+	global status
+	if status:
+		return
+	if sm.get()[-3:-1] == "..":
+		sm.set(sm.get()[0:-3])
+	else:
+		sm.set(sm.get() + '.')
+	sswindow.after(1000, updatew)
+
+sswindow.after(0, updatew)
+sswindow.after(4050, querying)
+sswindow.after(7050, leaposcheck)
+sswindow.after(9000, sswindow.destroy)
+sswindow.mainloop()
+
+"""
+#
 #
 #initialization
 #
@@ -139,7 +191,7 @@ cursorpos = "" #cursor position before shortcut workaround
 
 window = tk.Tk()
 ttk.Label(text="  leapcode").grid(column=0,row=0,sticky="ws")
-ttk.Label(text="    v0.0.2").grid(column=0,row=1,sticky="wn")
+ttk.Label(text="    v0.0.3").grid(column=0,row=1,sticky="wn")
 
 nb = ttk.Button(text="+",width=1)
 nb.grid(column=1,row=1,sticky="w")
