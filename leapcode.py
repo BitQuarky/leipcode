@@ -28,14 +28,14 @@ public class {0} {1}
 #
 """
 
-def filltext(event):
+def filltext(event=None):
 	global txt
-	file = cb.get()
-	f = Path(file).open()
-	n = f.read()
+	#file = cb.get()          #
+	#f = Path(file).open()#keep for future windows compatability
+	#n = f.read()             #
 	txt.delete('1.0', 'end')
-	txt.insert('end',n)
-	f.close()	
+	txt.insert('end',subprocess.run("cat " + cb.get(),shell=True,capture_output=True).stdout)
+	#f.close()	          #
 
 def fetchfiles(event=None):
 	cb['values'] = list(Path('.').glob('*.java'))
@@ -56,6 +56,7 @@ def makenew(event):
 	file = cb.get()
 	if not Path(file) in list(Path('.').glob('*.java')):
 		subprocess.run("echo " + template.format(file[0:-5],'{','}') + " > " + file,shell=True)
+	filltext()
 
 def flatten_helper(l):
 	s = ""
@@ -65,8 +66,9 @@ def flatten_helper(l):
 
 def save(event=None):
 	global txt
-	file = cb.get()  #first we have to use stdin with a custom delimiter to catch all chars, then we use split to cleanup (add tabs and newlines, plus fix astericks which seem to insert 'ls' into the string when standalone- removing the spaces shouldn't break anything)
-	subprocess.run("data=$(cat <<\\!eof!\n" + flatten_helper([line + "*" for line in (flatten_helper([line + "\\t" for line in re.split(r"\t+",flatten_helper([line + "\\n" for line in txt.get('1.0', 'end').splitlines()]))])).split(sep=" * ")])[0:-7] + "\n!eof!\n); echo $data > " + file,shell=True)
+	file = cb.get()  #first we have to use stdin with a custom delimiter to catch all chars, then we use split to cleanup (add tabs and newlines, set -f fixes asterisk expansion)
+	print("data=$(cat <<\\!eof!\n" + flatten_helper([line + "\*" for line in (flatten_helper([line + "\\t" for line in re.split(r"\t",flatten_helper([line + "\\n" for line in txt.get('1.0', 'end').splitlines()]))])).split(sep="*")])[0:-7] + "\n!eof!\n); echo $data > " + file)
+	subprocess.run("set -f; data=$(cat <<\\!eof!\n" + flatten_helper([line + "\\t" for line in re.split(r"\t",flatten_helper([line + "\\n" for line in txt.get('1.0', 'end').splitlines()]))])[0:-4] + "\n!eof!\n); echo $data > " + file,shell=True)
 
 def run(event=None):
 	file = cb.get()
