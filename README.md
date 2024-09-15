@@ -10,10 +10,11 @@ next generation java IDE
 * Keybinds
   * Copy and paste
   * Compile, run, and save
+* light and dark themes
+* syntax highlighting (see release v0.1.0)
 
 # coming soon
 * logo
-* syntax highlighting
 
 # usage
 simply run with python (>= 3.0, requires tkinter)
