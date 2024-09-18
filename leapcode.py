@@ -26,6 +26,16 @@ public class {0} {1}
 
 """
 #
+#windows detection
+#
+"""
+
+windows = True
+if (subprocess.run("cat <(echo text)",shell=True).stderr != ""):
+	windows = True
+
+"""
+#
 #Input
 #Handlers
 #
@@ -71,7 +81,10 @@ def flatten_helper(l):
 
 def save(event=None):
 	global txt 
-	subprocess.run("(cat <<\\END\n" + txt.get("1.0", tk.END) + "\nEND\n) > " + cb.get(), shell=True)
+	if not windows:
+		subprocess.run("(cat <<\\END\n" + txt.get("1.0", tk.END) + "\nEND\n) > " + cb.get(), shell=True)
+	else:
+		subprocess.run("echo (@'\n" + txt.get("1.0", tk.END) + "\n'@) > " + cb.get(), shell=True,executable="pwsh")
 
 def run(event=None):
 	file = cb.get()
