@@ -11,10 +11,17 @@ next generation java IDE
   * Copy and paste
   * Compile, run, and save
 * light and dark themes
-* syntax highlighting (see release v0.1.0)
+* syntax highlighting
+* *NEW* windows support ig
 
 # coming soon
 * logo
+
+# install
+requirements:
+* python >= 3.0
+* pip
+* [sv-ttk](https://github.com/rdbende/Sun-Valley-ttk-theme)
 
 # usage
 simply run with python (>= 3.0, requires tkinter)
