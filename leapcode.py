@@ -70,9 +70,8 @@ def flatten_helper(l):
 	return s
 
 def save(event=None):
-	global txt
-	file = cb.get()  #first we have to use stdin with a custom delimiter to catch all chars, then we use split to cleanup (add tabs and newlines, set -f fixes asterisk expansion)
-	subprocess.run("set -f; data=$(cat <<\\!eof!\n" + flatten_helper([line + "\\t" for line in re.split(r"\t",flatten_helper([line + "\\n" for line in txt.get('1.0', 'end').splitlines()]))])[0:-4] + "\n!eof!\n); echo $data > " + file,shell=True)
+	global txt 
+	subprocess.run("(cat <<\\END\n" + txt.get("1.0", tk.END) + "\nEND\n) > " + cb.get(), shell=True)
 
 def run(event=None):
 	file = cb.get()
@@ -114,13 +113,12 @@ def pressedkey(event):
 	global txt
 	updatehighlight(start=txt.index(tk.INSERT + "-9c"),end=txt.index(tk.INSERT + "+9c"),inputupdate=True)
 	#removehighlight(backspace=-1)
-	if mod:
-		if chr(event.char.encode()[0] + 96) in keymap:
-			mod = not mod
-			keymap[keymap.index(chr(event.char.encode()[0] + 96))+1]()
-		else:
-			warnshortcut()	
-
+	print(event.char.encode())
+	try:
+		if chr(event.char.encode()[0] + 96) != event.char and chr(int.from_bytes(event.char.encode()) + 96) in keymap:
+			keymap[keymap.index(chr(int.from_bytes(event.char.encode()) + 96))+1]()	
+	except(IndexError):
+		print("")
 def processmatches(mo,startm,update=False):
 	global txt
 	global upar
@@ -131,22 +129,25 @@ def processmatches(mo,startm,update=False):
 	openpar = "({["
 	closepar = ")}]"
 	if mtch[-1] == '"':
+		#if  (len(txt.tag_names(starts)) > 0 and not txt.tag_names(starts)[0] == 'string') or not len(txt.tag_names(starts)) > 0:
 		txt.tag_remove("ustring", starts, tk.END)
 		txt.tag_add("string", starts, ends)
+		print(mtch)
+		#	if len(txt.tag_names(starts)) > 0:
+		#		print(txt.tag_names(starts)[0])
 	elif mtch[0] == '"':
 		txt.tag_remove("string", txt.index(starts).split('.')[0] + ".0", ends)
 		txt.tag_add("ustring", starts, tk.END)
 	elif mtch in openpar:
-		upar[openpar.index(mtch)] += (starts, ends)
+		upar[openpar.index(mtch)].append(starts)
 	elif ((mtch in closepar) and (len(upar[closepar.index(mtch)]) > 0)):
-		e = upar[closepar.index(mtch)].pop()
 		s = upar[closepar.index(mtch)].pop()
-		txt.tag_remove("unmp", s, e)
-		txt.tag_remove("unmp", starts, ends)
-		txt.tag_add(mtch, s, e)
-		txt.tag_add(mtch, starts, ends)
+		txt.tag_remove("unmp", s)
+		txt.tag_remove("unmp", starts)
+		txt.tag_add(mtch, s)
+		txt.tag_add(mtch, starts)
 	elif mtch in closepar:
-		txt.tag_add("unmp", starts, ends)
+		txt.tag_add("unmp", starts)
 	else:
 		r = re.search("([a-zA-Z0-9]+)",mtch)
 		starts += "+" + str(r.span()[0]) + "c"
@@ -167,11 +168,12 @@ def removehighlight():
 	while cur <= int(lineend.split('.')[1]) and rmve == "":
 		linecur = linestart + str(cur)
 		tags = txt.tag_names(linecur)
-		print(linecur)
 		ch = txt.get(linecur)
 		wasend = isend
 		isend = ch in " \n\t[]{}(),.;:"
-		if collect and len(tag) == 0 and not detected and isend: 
+		if tags and tags[0] in "[]{}()" and not ch in "[]{}()":
+			txt.tag_remove(tags[0], linecur)
+		elif collect and len(tag) == 0 and not detected and isend: 
 			rmvs = rmve = ""
 			collect = False
 		elif collect and not isend and not detected:
@@ -195,7 +197,6 @@ def removehighlight():
 				detected = True
 		cur += 1
 	if rmve != "":
-		print(rmvs + ":" + rmve + "|" + taglt + "|")
 		txt.tag_remove(taglt, rmvs, rmve)
 		
 def updatehighlight(event=None,start="1.0",end=tk.END,inputupdate=False):
@@ -204,12 +205,10 @@ def updatehighlight(event=None,start="1.0",end=tk.END,inputupdate=False):
 	if inputupdate:
 		removehighlight()
 	re.sub("[ \n\t,.()[\\]{};]+((if)|(while)|(public)|(class)|(void)|(static)|(double)|(int)|(String)|(for)|(boolean)|(true)|(false)|(break))(?![a-zA-Z0-9])", partial(processmatches, startm=start, update=True), txt.get(start, end))
-	re.sub('(".*")|(".*)|[(){}]|([][])', partial(processmatches, startm='1.0'), txt.get('1.0', tk.END))
+	re.sub('("[a-zA-Z0-9!@#$%^&*()-=_+[\]{}\\:;\',./?>< |]*")|(".*)|[(){}]|([][])', partial(processmatches, startm='1.0'), txt.get('1.0', tk.END))
 	for l in upar:
-		while len(l) > 1:
-			s = l.pop(0)
-			e = l.pop(0)
-			txt.tag_add("unmp", s, e)
+		while len(l) > 0:
+			txt.tag_add("unmp", l.pop(0))
 
 def toggletheme(event=None):
 	global lighttheme
@@ -218,7 +217,18 @@ def toggletheme(event=None):
 		sv_ttk.set_theme("light")
 	else:
 		sv_ttk.set_theme("dark")
-	
+
+def checkpaste(event=None):
+	global pasted
+	global window
+	if pasted:
+		updatehighlight()
+		pasted = False
+	window.after(2000, checkpaste)
+
+def setpasted(event=None):
+	global pasted
+	pasted = True
 
 """
 #
@@ -228,7 +238,7 @@ def toggletheme(event=None):
 #
 """
 
-keymap = ["f",compile,"s",save,"r",run,"c",copy,"v",paste]
+keymap = ["f",compile,"s",save,"r",run]
 
 """
 #
@@ -297,6 +307,7 @@ cursorpos = "" #cursor position before shortcut workaround
 upar = [[],[],[]]
 uterm = []
 lighttheme = False
+pasted = False
 
 window = tk.Tk()
 ttk.Label(text="  leapcode").grid(column=0,row=0,sticky="ws")
@@ -365,7 +376,9 @@ tb.bind("<Button-1>", toggletheme)
 nb.bind("<Button-1>", makenew)
 sb.bind("<Button-1>", save)
 rb.bind("<Button-1>",run)
+window.bind("<<Paste>>", setpasted)
+window.after(1000, checkpaste)
 #txt.bind("<BackSpace>", removehighlight)
-window.bind("<Control_L>",togglemod)
+#window.bind("<Control_L>",togglemod)
 window.bind("<Key>",pressedkey)
 window.mainloop()
